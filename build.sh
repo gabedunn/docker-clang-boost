@@ -4,18 +4,33 @@ main () {
 	# config variables
 	_REPO="clang-boost"
 	_DISTROS=("ubuntu" "opensuse")
+	_PREFIX="gabedunn/"
 
-	# loop through the selected distros and build their images
-	for _DISTRO in "${_DISTROS[@]}"; do
-		# generate the command used to build the image
-		_BUILD_CMD="docker build $_DISTRO -t $_REPO:$_DISTRO"
+	case $1 in
+		publish|push)
+			for _DISTRO in "${_DISTROS[@]}"; do
+				_IMAGE="$_PREFIX$_REPO:$_DISTRO"
 
-		# output the status
-		echo "Building: $_DISTRO ($_BUILD_CMD)"
+				# tag the image
+				echo "Tagging as $_IMAGE..."
+				docker tag $_REPO:$_DISTRO $_IMAGE
 
-		# run the build command
-		$_BUILD_CMD
-	done
+				# push the image
+				echo "Pushing $_IMAGE..."
+				docker push $_IMAGE
+			done
+			;;
+		build|*)
+			for _DISTRO in "${_DISTROS[@]}"; do
+				# generate the command used to build the image
+				_BUILD_CMD="docker build $_DISTRO -t $_REPO:$_DISTRO"
+
+				# run the build command
+				echo "Building: $_DISTRO ($_BUILD_CMD)"
+				$_BUILD_CMD
+			done
+			;;
+	esac
 }
 
-main
+main "$1"
