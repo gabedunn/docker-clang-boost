@@ -3,17 +3,17 @@
 main () {
 	# config variables
 	_REPO="clang-boost"
-	_DISTROS=("ubuntu" "opensuse")
-	_NAMESPACE="gabedunn/"
+	_DISTROS=("ubuntu" "opensuse" "alpine")
+	_NAMESPACE="gabedunn"
 
 	case $1 in
 		publish|push)
 			for _DISTRO in "${_DISTROS[@]}"; do
-				_IMAGE="$_NAMESPACE$_REPO:$_DISTRO"
+				_IMAGE="$_NAMESPACE/$_REPO:$_DISTRO"
 
 				# tag the image
 				echo "Tagging as $_IMAGE..."
-				docker tag $_REPO:"$_DISTRO$_IMAGE"
+				docker tag $_REPO:"$_DISTRO" "$_IMAGE"
 
 				# push the image
 				echo "Pushing $_IMAGE..."

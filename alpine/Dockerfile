@@ -11,7 +11,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # install initial pre-reqs
 RUN apk add \
-    boost-dev \
+    boost-static \
     build-base \
     clang-dev \
     cmake \
