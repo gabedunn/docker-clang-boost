@@ -32,9 +32,6 @@ RUN wget https://github.com/llvm/llvm-project/releases/download/llvmorg-${llvmre
  && mv llvm-project-${llvmrel}.src llvm-project
 WORKDIR /usr/src/build/llvm-project
 
-# temp
-RUN apk add build-base
-
 # generate the build files
 RUN cmake -Hllvm -B build -G "Unix Makefiles" \
     -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;libcxx;libcxxabi;libunwind;lldb;compiler-rt;lld;polly" \
