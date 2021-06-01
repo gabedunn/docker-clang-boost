@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG release=3
+ARG release=latest
 FROM alpine:${release}
 
 LABEL maintainer="Gabe Dunn <gabed@hey.com>"
