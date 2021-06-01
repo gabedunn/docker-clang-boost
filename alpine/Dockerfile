@@ -13,36 +13,22 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apk add \
     boost-dev \
     build-base \
-    clang \
+    clang-dev \
     cmake \
     curl \
     git \
     gnupg \
+    lld \
+    lldb \
+    llvm \
     make \
     python3
 
 # set the llvm version & release
-ARG llvmver=12
+ARG llvmver=10
 ARG llvmrel=${llvmver}.0.0
 
-# checkout the llvm repo
-WORKDIR /usr/src/build
-RUN wget https://github.com/llvm/llvm-project/releases/download/llvmorg-${llvmrel}/llvm-project-${llvmrel}.src.tar.xz \
- && tar xvf llvm-project-${llvmrel}.src.tar.xz \
- && mv llvm-project-${llvmrel}.src llvm-project
-WORKDIR /usr/src/build/llvm-project
-
-# generate the build files
-RUN cmake -Hllvm -B build -G "Unix Makefiles" \
-    -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;libcxx;libcxxabi;libunwind;lldb;compiler-rt;lld;polly" \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CXX_COMPILER=clang++
-
-# build the project
-RUN cmake --build build
-
-# remove old version of clang
-RUN apk del clang
-
-# install clang
-RUN cmake --build build --target install
+# set default versions for commands
+RUN ln -sf /usr/bin/clang-${llvmver}    /usr/bin/cc     && \
+    ln -sf /usr/bin/clang-${llvmver}    /usr/bin/c++    && \
+    ln -sf /usr/bin/lld                 /usr/bin/ld
