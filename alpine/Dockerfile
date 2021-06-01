@@ -11,27 +11,41 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # install initial pre-reqs
 RUN apk add \
-    ca-certificates \
+    boost-dev \
+    build-base \
+    clang \
     cmake \
     curl \
     git \
-    gcc \
     gnupg \
     make \
-    wget
+    python3
 
-# set the llvm version
+# set the llvm version & release
 ARG llvmver=12
+ARG llvmrel=${llvmver}.0.0
 
 # checkout the llvm repo
 WORKDIR /usr/src/build
-RUN git clone --branch release/${llvmver}.x --depth=1 https://github.com/llvm/llvm-project.git
+RUN wget https://github.com/llvm/llvm-project/releases/download/llvmorg-${llvmrel}/llvm-project-${llvmrel}.src.tar.xz \
+ && tar xvf llvm-project-${llvmrel}.src.tar.xz \
+ && mv llvm-project-${llvmrel}.src llvm-project
 WORKDIR /usr/src/build/llvm-project
+
+# temp
+RUN apk add build-base
 
 # generate the build files
 RUN cmake -Hllvm -B build -G "Unix Makefiles" \
     -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;libcxx;libcxxabi;libunwind;lldb;compiler-rt;lld;polly" \
-    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CXX_COMPILER=clang++
 
 # build the project
 RUN cmake --build build
+
+# remove old version of clang
+RUN apk del clang
+
+# install clang
+RUN cmake --build build --target install
