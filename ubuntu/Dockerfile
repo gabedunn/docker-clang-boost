@@ -13,18 +13,21 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt update && \
 	apt install -y \
 	apt-transport-https \
+	bzip2 \
 	ca-certificates \
 	cmake \
 	curl \
 	git \
 	gnupg \
 	make \
+	python-dev \
 	software-properties-common \
 	wget
 
-# set the llvm version (& ubuntu release again)
+# set the llvm version (& bring in ubuntu release again)
 ARG llvmver=12
-ARG release=focal
+ARG boostver=1_76_0
+ARG release
 
 # add the llvm repo and gpg key
 RUN echo "deb http://apt.llvm.org/${release}/ llvm-toolchain-${release}-${llvmver} main" >> /etc/apt/sources.list.d/llvm.list && \
@@ -69,8 +72,6 @@ RUN apt update && \
 	python3-clang-${llvmver} \
 	python3-lldb-${llvmver}
 
-# install boost library files
-RUN apt install -y libboost-all-dev
 
 # set default versions for commands
 RUN update-alternatives --install /usr/bin/cc			cc				/usr/bin/clang-${llvmver}			1000 && \
@@ -89,5 +90,20 @@ RUN update-alternatives --install /usr/bin/cc			cc				/usr/bin/clang-${llvmver}	
 	update-alternatives --install /usr/bin/lld-link		lld-link		/usr/bin/lld-link-${llvmver}		1000 && \
 	update-alternatives --install /usr/bin/lldb			lldb			/usr/bin/lldb-${llvmver}			1000
 
-# set default start command to bash shell
-CMD ["/bin/bash"]
+# download boost source tarball & extract it
+WORKDIR /usr/src/boost
+RUN /usr/bin/bash -c 'wget "https://boostorg.jfrog.io/artifactory/main/release/${boostver//_/.}/source/boost_${boostver}.tar.bz2"' \
+ && tar xvf boost_${boostver}.tar.bz2
+
+# build and install the boost build system
+WORKDIR /usr/src/boost/boost_${boostver}/tools/build
+RUN ./bootstrap.sh clang \
+ && ./b2 install toolset=clang
+
+# build and install the boost libraries
+WORKDIR /usr/src/boost/boost_${boostver}
+RUN b2 --build-dir=/tmp/build-boost --build-type=complete --layout=versioned toolset=clang install
+
+# clean up
+WORKDIR /
+RUN rm -rf /usr/src/boost
