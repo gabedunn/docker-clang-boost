@@ -1,34 +1,57 @@
 #!/usr/bin/env bash
 
+
 main () {
-	# config variables
-	_REPO="clang-boost"
-	_DISTROS=("ubuntu" "opensuse" "alpine")
-	_NAMESPACE="gabedunn"
+  # local variables
+  local _REPO="clang-boost"
+  local	_DISTROS=("alpine" "ubuntu" "opensuse")
+  local	_NAMESPACE="gabedunn"
+
+  build () {
+    for _DISTRO in "${_DISTROS[@]}"; do
+      echo "Building: $_DISTRO..."
+      docker build "$_DISTRO" -t "$_REPO:$_DISTRO"
+    done
+  }
+
+  tag () {
+    for _DISTRO in "${_DISTROS[@]}"; do
+      # tag the image
+      echo "Tagging $_NAMESPACE/$_REPO:$_DISTRO..."
+      docker tag $_REPO:"$_DISTRO" "$_NAMESPACE/$_REPO:$_DISTRO"
+
+      # tag alpine as the latest
+      if [ "$_DISTRO" == "alpine" ]; then
+        echo "Tagging $_DISTRO as latest..."
+        docker tag $_REPO:"$_DISTRO" "$_NAMESPACE/$_REPO:latest"
+      fi
+    done
+  }
+
+  publish () {
+    tag
+
+    for _DISTRO in "${_DISTROS[@]}"; do
+      echo "Pushing $_NAMESPACE/$_REPO:$_DISTRO"
+      docker push "$_NAMESPACE/$_REPO:$_DISTRO"
+
+      # push alpine as the latest
+      if [ "$_DISTRO" == "alpine" ]; then
+        echo "Pushing $_DISTRO as latest..."
+        docker push "$_NAMESPACE/$_REPO:latest"
+      fi
+    done
+  }
 
 	case $1 in
 		publish|push)
-			for _DISTRO in "${_DISTROS[@]}"; do
-				_IMAGE="$_NAMESPACE/$_REPO:$_DISTRO"
-
-				# tag the image
-				echo "Tagging as $_IMAGE..."
-				docker tag $_REPO:"$_DISTRO" "$_IMAGE"
-
-				# push the image
-				echo "Pushing $_IMAGE..."
-				docker push "$_IMAGE"
-			done
+			publish
 			;;
+	  tag)
+	    tag
+	    ;;
 		build|*)
-			for _DISTRO in "${_DISTROS[@]}"; do
-				# generate the command used to build the image
-				_BUILD_CMD="docker build $_DISTRO -t $_REPO:$_DISTRO"
-
-				# run the build command
-				echo "Building: $_DISTRO ($_BUILD_CMD)"
-				$_BUILD_CMD
-			done
+			build
 			;;
 	esac
 }
