@@ -5,10 +5,6 @@ FROM opensuse/leap:${release}
 
 LABEL maintainer="Gabe Dunn <gabed@hey.com>"
 
-# set the timezone
-ENV TZ=America/Edmonton
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
 # install initial pre-reqs
 RUN zypper --non-interactive install \
     bzip2 \
@@ -30,8 +26,8 @@ ARG release
 
 # add repos for compilers (clang) & c++ libraries (boost)
 RUN zypper --non-interactive addrepo \
-	"https://download.opensuse.org/repositories/devel:tools:compiler/openSUSE_Leap_${release}/devel:tools:compiler.repo" && \
-	zypper --non-interactive --gpg-auto-import-keys refresh
+	"https://download.opensuse.org/repositories/devel:tools:compiler/openSUSE_Leap_${release}/devel:tools:compiler.repo" \
+ && zypper --non-interactive --gpg-auto-import-keys refresh
 
 # install packages, clang, clang tools, & llvm
 RUN zypper --non-interactive install \
@@ -75,23 +71,24 @@ RUN zypper --non-interactive install \
 	llvm${llvmver}-polly-devel
 
 # set default versions for commands
-RUN update-alternatives --install /usr/bin/cc			cc				/usr/bin/clang-${llvmver}			1000 && \
-	update-alternatives --install /usr/bin/c++			c++				/usr/bin/clang++-${llvmver}			1000 && \
-	update-alternatives --install /usr/bin/ld			ld				/usr/bin/ld.lld-${llvmrel}			1000
+RUN update-alternatives --install /usr/bin/cc   cc  /usr/bin/clang-${llvmver}   1000 \
+ && update-alternatives --install /usr/bin/c++  c++ /usr/bin/clang++-${llvmver} 1000 \
+ && update-alternatives --install /usr/bin/ld   ld  /usr/bin/ld.lld-${llvmrel}  1000
 
 # download boost source tarball & extract it
 WORKDIR /usr/src/boost
 RUN /bin/bash -c 'wget "https://boostorg.jfrog.io/artifactory/main/release/${boostver//_/.}/source/boost_${boostver}.tar.bz2"' \
- && tar xvf boost_${boostver}.tar.bz2
+ && tar xvf boost_${boostver}.tar.bz2 \
+ && rm boost_${boostver}.tar.bz2
 
-# build and install the boost build system
-WORKDIR /usr/src/boost/boost_${boostver}/tools/build
-RUN ./bootstrap.sh clang \
- && ./b2 install toolset=clang
+# configure the project to use clang
+WORKDIR /usr/src/boost/boost_${boostver}
+RUN ./bootstrap.sh --with-toolset=clang
 
 # build and install the boost libraries
-WORKDIR /usr/src/boost/boost_${boostver}
-RUN b2 --build-dir=/tmp/build-boost --build-type=complete --layout=versioned toolset=clang install
+ARG builddir=/tmp/boost-build
+RUN ./b2 --build-dir=${builddir} toolset=clang install \
+ && rm -rf ${builddir}
 
 # clean up
 WORKDIR /
